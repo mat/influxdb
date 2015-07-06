@@ -312,6 +312,27 @@ func TestStatementExecutor_ExecuteStatement_Grant_Err(t *testing.T) {
 	}
 }
 
+// Ensure a GRANT statement for admin privilege can be executed.
+func TestStatementExecutor_ExecuteStatement_Grant_Admin(t *testing.T) {
+	e := NewStatementExecutor()
+	e.Store.SetPrivilegeFn = func(username, database string, p influxql.Privilege) error {
+		if username != "susy" {
+			t.Fatalf("unexpected username: %s", username)
+		} else if database != "" {
+			t.Fatalf("unexpected database: %s", database)
+		} else if p != influxql.AllPrivileges {
+			t.Fatalf("unexpected privilege: %s", p)
+		}
+		return nil
+	}
+
+	if res := e.ExecuteStatement(influxql.MustParseStatement(`GRANT ALL TO susy`)); res.Err != nil {
+		t.Fatal(res.Err)
+	} else if res.Series != nil {
+		t.Fatalf("unexpected rows: %#v", res.Series)
+	}
+}
+
 // Ensure a REVOKE statement can be executed.
 func TestStatementExecutor_ExecuteStatement_Revoke(t *testing.T) {
 	e := NewStatementExecutor()
@@ -342,6 +363,27 @@ func TestStatementExecutor_ExecuteStatement_Revoke_Err(t *testing.T) {
 
 	if res := e.ExecuteStatement(influxql.MustParseStatement(`REVOKE ALL PRIVILEGES ON foo FROM susy`)); res.Err == nil || res.Err.Error() != "marker" {
 		t.Fatalf("unexpected error: %s", res.Err)
+	}
+}
+
+// Ensure a REVOKE statement for admin privilege can be executed.
+func TestStatementExecutor_ExecuteStatement_Revoke_Admin(t *testing.T) {
+	e := NewStatementExecutor()
+	e.Store.SetPrivilegeFn = func(username, database string, p influxql.Privilege) error {
+		if username != "susy" {
+			t.Fatalf("unexpected username: %s", username)
+		} else if database != "" {
+			t.Fatalf("unexpected database: %s", database)
+		} else if p != influxql.NoPrivileges {
+			t.Fatalf("unexpected privilege: %s", p)
+		}
+		return nil
+	}
+
+	if res := e.ExecuteStatement(influxql.MustParseStatement(`REVOKE ALL PRIVILEGES FROM susy`)); res.Err != nil {
+		t.Fatal(res.Err)
+	} else if res.Series != nil {
+		t.Fatalf("unexpected rows: %#v", res.Series)
 	}
 }
 
