@@ -534,17 +534,19 @@ func (p *Parser) parseRevokeStatement() (*RevokeStatement, error) {
 	// Parse ON clause.
 	tok, pos, lit := p.scanIgnoreWhitespace()
 	if tok == ON {
-		// Parse the name of the thing we're revoking a privilege to use.
+		// Parse the name of the database.
 		lit, err := p.parseIdent()
 		if err != nil {
 			return nil, err
+		} else if lit == "" {
+			return nil, newParseError(tokstr(tok, lit), []string{"identifier"}, pos)
 		}
 		stmt.On = lit
 
 		tok, pos, lit = p.scanIgnoreWhitespace()
 	} else if priv != AllPrivileges {
-		// ALL PRIVILEGES is the only privilege allowed cluster-wide.
-		// No ON clause means query is requesting cluster-wide.
+		// ALL PRIVILEGES and no On clause revokes admin privilege.
+		// No other privileges are revoked without an ON clause.
 		return nil, newParseError(tokstr(tok, lit), []string{"ON"}, pos)
 	}
 
@@ -553,7 +555,7 @@ func (p *Parser) parseRevokeStatement() (*RevokeStatement, error) {
 		return nil, newParseError(tokstr(tok, lit), []string{"FROM"}, pos)
 	}
 
-	// Parse the name of the user we're revoking the privilege from.
+	// Parse the name of the user.
 	lit, err = p.parseIdent()
 	if err != nil {
 		return nil, err
@@ -578,17 +580,19 @@ func (p *Parser) parseGrantStatement() (*GrantStatement, error) {
 	// Parse ON clause.
 	tok, pos, lit := p.scanIgnoreWhitespace()
 	if tok == ON {
-		// Parse the name of the thing we're granting a privilege to use.
+		// Parse the name of the database.
 		lit, err := p.parseIdent()
 		if err != nil {
 			return nil, err
+		} else if lit == "" {
+			return nil, newParseError(tokstr(tok, lit), []string{"identifier"}, pos)
 		}
 		stmt.On = lit
 
 		tok, pos, lit = p.scanIgnoreWhitespace()
 	} else if priv != AllPrivileges {
-		// ALL PRIVILEGES is the only privilege allowed cluster-wide.
-		// No ON clause means query is requesting cluster-wide.
+		// ALL PRIVILEGES and no On clause grants admin privilege.
+		// No other privileges are granted without an ON clause.
 		return nil, newParseError(tokstr(tok, lit), []string{"ON"}, pos)
 	}
 
@@ -597,7 +601,7 @@ func (p *Parser) parseGrantStatement() (*GrantStatement, error) {
 		return nil, newParseError(tokstr(tok, lit), []string{"TO"}, pos)
 	}
 
-	// Parse the name of the user we're granting the privilege to.
+	// Parse the name of the user.
 	lit, err = p.parseIdent()
 	if err != nil {
 		return nil, err
