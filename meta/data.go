@@ -470,6 +470,12 @@ func (data *Data) SetPrivilege(name, database string, p influxql.Privilege) erro
 		return ErrUserNotFound
 	}
 
+	// Admin privilege is set when the database name is empty.
+	if database == "" {
+		ui.Admin = (p == influxql.AllPrivileges)
+		return nil
+	}
+
 	if ui.Privileges == nil {
 		ui.Privileges = make(map[string]influxql.Privilege)
 	}
